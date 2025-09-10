@@ -13,7 +13,6 @@ st.markdown(
     """
     <div style="background-color:#f5f5f7; padding:12px 14px; border-radius:8px;">
       在下方表格中输入 <b>时间 (s)</b> 和 <b>位移 (cm)</b> 数据。点击 <b>显示图片</b> 或 <b>显示公式</b> 进行拟合展示。<br>
-      两个按钮互不影响：先后点击均可同时显示图像与公式。
     </div>
     """,
     unsafe_allow_html=True
