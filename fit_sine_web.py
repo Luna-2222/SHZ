@@ -58,7 +58,7 @@ with col1:
             ax.set_xlabel("时间 (s)",fontproperties=myfont)
             ax.set_ylabel("位移 (m)",fontproperties=myfont)
             ax.legend(prop=myfont)
-            ax.set_title("三角函数拟合结果",,fontproperties=myfont)
+            ax.set_title("三角函数拟合结果",fontproperties=myfont)
             st.pyplot(fig)
 
 with col2:
