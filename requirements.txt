@@ -3,5 +3,3 @@ numpy
 pandas
 matplotlib
 scipy
-# 加上字体包
-matplotlib-fontconfig
