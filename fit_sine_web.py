@@ -3,6 +3,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import streamlit as st
+import matplotlib.font_manager as fm
+
+# 指定微软雅黑字体
+myfont = fm.FontProperties(fname="NotoSansSC-VariableFont_wght.ttf")
 
 # ================= 页面配置 =================
 st.set_page_config(page_title="三角函数拟合", layout="centered")
@@ -51,10 +55,10 @@ with col1:
             fig, ax = plt.subplots(figsize=(6, 4), dpi=300)
             ax.scatter(t_data, y_data, color="red", label="实验数据")
             ax.plot(t_fit, y_fit, color="blue", label="拟合曲线")
-            ax.set_xlabel("时间 (s)")
-            ax.set_ylabel("位移 (m)")
-            ax.legend()
-            ax.set_title("三角函数拟合结果")
+            ax.set_xlabel("时间 (s)",fontproperties=myfont)
+            ax.set_ylabel("位移 (m)",fontproperties=myfont)
+            ax.legend(prop=myfont)
+            ax.set_title("三角函数拟合结果",,fontproperties=myfont)
             st.pyplot(fig)
 
 with col2:
