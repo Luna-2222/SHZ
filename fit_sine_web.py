@@ -1,19 +1,18 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.optimize import curve_fit
 import streamlit as st
 import matplotlib.font_manager as fm
 
 # ========== 页面配置 ==========
 st.set_page_config(page_title="弹簧振子的位移随时间变化规律", layout="centered")
-st.title("🔔 弹簧振子的位移随时间变化规律")
+st.title("🔔 弹簧振子的位移随时间变化规律 (最小二乘法拟合)")
 
 st.markdown(
     """
     <div style="background-color:#f0f0f0; padding:10px; border-radius:5px; font-size:16px;">
-    该实验用于研究弹簧振子位移与时间的关系，通过实验数据拟合正弦函数规律并进行分析。<br>
-    <b>使用说明：</b> 点击表格单元格输入数据，可添加行或修改数值；点击下方按钮进行绘图或查看公式。
+    本实验使用最小二乘法拟合弹簧振子位移随时间变化的正弦函数规律。<br>
+    <b>使用说明：</b> 点击表格输入数据，可添加行或修改数值；点击下方按钮进行绘图或查看公式。
     </div>
     """,
     unsafe_allow_html=True
@@ -21,9 +20,9 @@ st.markdown(
 
 # ========== 字体设置 ==========
 try:
-    myfont = fm.FontProperties(fname="fonts/msyh.ttf")  # 如果上传了微软雅黑
+    myfont = fm.FontProperties(fname="NotoSansSC-VariableFont_wght.ttf")
 except:
-    myfont = fm.FontProperties(fname="NotoSansSC-VariableFont_wght.ttf")  # 备用
+    myfont = fm.FontProperties(fname="NotoSansSC-VariableFont_wght.ttf")
 
 plt.rcParams['axes.unicode_minus'] = False
 
@@ -38,26 +37,38 @@ default_data = pd.DataFrame({
 
 # ========== 输入表格 ==========
 data = st.data_editor(default_data, num_rows="dynamic", use_container_width=True)
-
 t_data = np.array(data["时间 (s)"])
 y_data = np.array(data["位移 (cm)"])
 
-# ========== 拟合函数 ==========
-def func(t, A, omega, phi, C):
-    return A * np.sin(omega * t + phi) + C
+# ========== 最小二乘法拟合函数 ==========
+def fit_sine_least_squares(t, y):
+    # 估计频率：用 FFT 找主频
+    n = len(t)
+    dt = np.mean(np.diff(t))
+    freqs = np.fft.rfftfreq(n, d=dt)
+    fft_magnitude = np.abs(np.fft.rfft(y - np.mean(y)))
+    freq_guess = freqs[np.argmax(fft_magnitude[1:]) + 1]  # 主频
+    omega_guess = 2 * np.pi * freq_guess
 
-def fit_data(t, y):
-    try:
-        popt, _ = curve_fit(func, t, y, p0=[(max(y)-min(y))/2, 2*np.pi, 0, np.mean(y)])
-        y_fit = func(t, *popt)
-        residuals = y - y_fit
-        ss_res = np.sum(residuals**2)
-        ss_tot = np.sum((y - np.mean(y))**2)
-        r2 = 1 - (ss_res / ss_tot)
-        return popt, r2
-    except Exception as e:
-        st.error(f"拟合失败: {e}")
-        return None, None
+    # 线性最小二乘：拟合 a*sin(ωt)+b*cos(ωt)+C
+    def linear_fit(omega):
+        X = np.column_stack([np.sin(omega * t), np.cos(omega * t), np.ones_like(t)])
+        coeffs, _, _, _ = np.linalg.lstsq(X, y, rcond=None)
+        return coeffs
+
+    coeffs = linear_fit(omega_guess)
+    a, b, C = coeffs
+    A = np.sqrt(a**2 + b**2)
+    phi = np.arctan2(b, a)
+    omega = omega_guess
+
+    # 计算 R²
+    y_fit = A * np.sin(omega * t + phi) + C
+    ss_res = np.sum((y - y_fit)**2)
+    ss_tot = np.sum((y - np.mean(y))**2)
+    r2 = 1 - ss_res/ss_tot
+
+    return A, omega, phi, C, r2
 
 # ========== 按钮区 ==========
 col1, col2 = st.columns(2)
@@ -70,30 +81,26 @@ with col2:
 
 # ========== 绘制图像 ==========
 if draw:
-    params, r2 = fit_data(t_data, y_data)
-    if params is not None:
-        A, omega, phi, C = params
-        t_fit = np.linspace(min(t_data), max(t_data), 500)
-        y_fit = func(t_fit, *params)
+    A, omega, phi, C, r2 = fit_sine_least_squares(t_data, y_data)
+    t_fit = np.linspace(min(t_data), max(t_data), 500)
+    y_fit = A * np.sin(omega * t_fit + phi) + C
 
-        fig, ax = plt.subplots(figsize=(7, 4), dpi=300)
-        ax.scatter(t_data, y_data, color="blue", label="实验数据")
-        ax.plot(t_fit, y_fit, color="red", label=f"拟合曲线 (R²={r2:.3f})")
-        ax.set_xlabel("时间 (s)", fontproperties=myfont)
-        ax.set_ylabel("位移 (cm)", fontproperties=myfont)
-        ax.legend(prop=myfont)
-        ax.set_title("弹簧振子的位移随时间变化规律", fontproperties=myfont)
-        st.pyplot(fig)
+    fig, ax = plt.subplots(figsize=(7, 4), dpi=300)
+    ax.scatter(t_data, y_data, color="blue", label="实验数据")
+    ax.plot(t_fit, y_fit, color="red", label=f"拟合曲线 (R²={r2:.3f})")
+    ax.set_xlabel("时间 (s)", fontproperties=myfont)
+    ax.set_ylabel("位移 (cm)", fontproperties=myfont)
+    ax.legend(prop=myfont)
+    ax.set_title("弹簧振子的位移随时间变化规律 (最小二乘法)", fontproperties=myfont)
+    st.pyplot(fig)
 
 # ========== 显示函数表达式 ==========
 if show_func:
-    params, r2 = fit_data(t_data, y_data)
-    if params is not None:
-        A, omega, phi, C = params
-        expr = f"x(t) = {A:.2f} · sin({omega:.2f}·t + {phi:.2f}) + {C:.2f}"
-        st.markdown(
-            f"<div style='text-align:center; font-size:18px; color:#444;'>"
-            f"拟合函数表达式：<br><b>{expr}</b><br>"
-            f"R² = {r2:.4f} （单位: cm）</div>",
-            unsafe_allow_html=True
-        )
+    A, omega, phi, C, r2 = fit_sine_least_squares(t_data, y_data)
+    expr = f"x(t) = {A:.2f} · sin({omega:.2f}·t + {phi:.2f}) + {C:.2f}"
+    st.markdown(
+        f"<div style='text-align:center; font-size:18px; color:#444;'>"
+        f"拟合函数表达式：<br><b>{expr}</b><br>"
+        f"R² = {r2:.4f} （单位: cm）</div>",
+        unsafe_allow_html=True
+    )
