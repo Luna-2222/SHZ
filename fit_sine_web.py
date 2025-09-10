@@ -8,7 +8,7 @@ from io import BytesIO
 
 # ================= 页面/布局 =================
 st.set_page_config(page_title="弹簧振子的位移随时间变化规律", layout="wide")
-st.title("🔔 弹簧振子的位移随时间变化规律（curve_fit 拟合）")
+st.title("🔔 弹簧振子的位移随时间变化规律")
 st.markdown(
     """
     <div style="background-color:#f5f5f7; padding:12px 14px; border-radius:8px;">
